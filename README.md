@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/miguel-sergio/tcp-ip-telemetry-node/actions/workflows/ci.yml/badge.svg)](https://github.com/miguel-sergio/tcp-ip-telemetry-node/actions/workflows/ci.yml)
 
+> **Step-by-step build guide** (milestones, design decisions, interview angles): [guide.md](guide.md)
+
 ```mermaid
 flowchart LR
     machinery["Industrial Machinery<br>(simulated)"]
@@ -56,6 +58,40 @@ flowchart TD
     sim --> cjson
     cjson --> log
     cjson --> tcp
+```
+
+## Runtime Flow
+
+One complete boot-to-delivery cycle:
+
+```mermaid
+sequenceDiagram
+    participant M as app_main
+    participant W as Wi-Fi Driver
+    participant T as telemetry_task
+    participant C as tcp_send_telemetry
+    participant S as TCP Server
+
+    M->>M: printf("tcp-ip-telemetry-node starting...")
+    M->>W: wifi_init_sta()
+    W->>W: esp_wifi_connect()
+    W-->>W: WIFI_EVENT_STA_DISCONNECTED → retry
+    W-->>W: IP_EVENT_STA_GOT_IP
+    W-->>M: xEventGroupSetBits(WIFI_CONNECTED_BIT)
+    Note over M,W: xEventGroupWaitBits unblocks
+    M->>T: xTaskCreate(telemetry_task)
+
+    loop every 5 s
+        T->>T: telemetry_simulate() — fills telemetry_t
+        T->>C: tcp_send_telemetry(&msg)
+        C->>C: cJSON_CreateObject / PrintUnformatted
+        C->>C: ESP_LOGI "telemetry: {...}" → UART
+        C->>S: socket() + connect()
+        C->>S: send(json_str)
+        S-->>C: ACK
+        C->>C: close(sock)
+        T->>T: vTaskDelay(5000 ms)
+    end
 ```
 
 ## Telemetry Protocol
