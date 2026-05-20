@@ -1,0 +1,15 @@
+menu "Telemetry Node Configuration"
+
+    config WIFI_SSID
+        string "Wi-Fi SSID"
+        default "myssid"
+        help
+            SSID of the Wi-Fi network to connect to.
+
+    config WIFI_PASSWORD
+        string "Wi-Fi Password"
+        default "mypassword"
+        help
+            Password for the Wi-Fi network.
+
+endmenu
